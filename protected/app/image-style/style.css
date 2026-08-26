@@ -197,3 +197,24 @@
   font-size: 13px;
   color: var(--text-muted);
 }
+
+.gen-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gen-item img {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.gen-item-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+}

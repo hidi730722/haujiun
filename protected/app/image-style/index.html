@@ -23,10 +23,10 @@
   <main class="page-main">
     <section class="panel">
       <h2>風格庫</h2>
-      <p class="panel-desc">把過去在 ChatGPT 生成過、效果好的商品圖存進來，之後生成新商品圖時可以選一張當風格參考。</p>
+      <p class="panel-desc">把過去在 ChatGPT 生成過、效果好的商品圖存進來（可一次選多張），之後生成新商品圖時可以選一張當風格參考。</p>
       <div id="uploadMsg" class="message"></div>
       <form id="uploadForm" class="upload-form">
-        <input type="file" id="uploadFile" accept="image/png,image/jpeg,image/webp" required />
+        <input type="file" id="uploadFile" accept="image/png,image/jpeg,image/webp" multiple required />
         <input type="text" id="uploadCategory" placeholder="類別（例如：手機殼）" list="categoryList" />
         <datalist id="categoryList">
           <option value="手機殼"></option>
@@ -43,24 +43,37 @@
     </section>
 
     <section class="panel">
-      <h2>生成新商品圖</h2>
-      <div id="generateMsg" class="message"></div>
+      <h2>商品圖生成器</h2>
+      <p class="panel-desc">上傳一張商品去背照，自動生成一整套不同用途的蝦皮商品圖（主圖、情境圖、細節圖…），可直接下載上架。</p>
+      <div id="genMsg" class="message"></div>
       <div class="generate-form">
         <div class="field">
-          <label for="productName">商品名稱</label>
-          <input type="text" id="productName" placeholder="例如：iPhone 18 Pro 磁吸手機殼" />
+          <label for="productPhoto">商品去背照片</label>
+          <input type="file" id="productPhoto" accept="image/png,image/jpeg,image/webp" />
         </div>
         <div class="field">
-          <label>參考風格（點選風格庫圖片）</label>
-          <div id="selectedRefPreview" class="selected-ref">未選擇（將只依文字描述生成）</div>
+          <label for="productName2">商品名稱（選填）</label>
+          <input type="text" id="productName2" placeholder="例如：iPhone 18 Pro 磁吸手機殼" />
         </div>
         <div class="field">
-          <label for="extraPrompt">額外描述（選填）</label>
-          <textarea id="extraPrompt" placeholder="例如：淺藍色系、加上鏡頭保護環特寫"></textarea>
+          <label for="genCount">要生成幾張？</label>
+          <select id="genCount">
+            <option value="2">2 張</option>
+            <option value="3">3 張</option>
+            <option value="4" selected>4 張</option>
+            <option value="5">5 張</option>
+            <option value="6">6 張</option>
+            <option value="7">7 張</option>
+            <option value="8">8 張</option>
+          </select>
         </div>
-        <button type="button" id="generateBtn" class="btn-primary">🎨 生成商品圖</button>
+        <div class="field">
+          <label for="styleNote2">風格補充說明（選填）</label>
+          <input type="text" id="styleNote2" placeholder="例如：淺藍色系、木質質感" />
+        </div>
+        <button type="button" id="generateSetBtn" class="btn-primary">🎨 自動生成商品圖組</button>
       </div>
-      <div id="generateResult" class="generate-result"></div>
+      <div id="generateSetResult" class="generate-result"></div>
     </section>
 
     <section class="panel">
