@@ -4,6 +4,9 @@ const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const OpenAI = require('openai');
+const { toFile } = require('openai');
+
+const EXT_MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 
 const MODULE_DATA_DIR = path.join(__dirname, '..', '..', 'data', 'image-style');
 const LIBRARY_DIR = path.join(MODULE_DATA_DIR, 'library');
@@ -133,17 +136,21 @@ router.post('/generate', async (req, res) => {
     let result;
     if (reference) {
       const refPath = path.join(LIBRARY_DIR, reference.filename);
+      const mime = EXT_MIME[path.extname(refPath).toLowerCase()] || 'image/png';
+      const refFile = await toFile(fs.createReadStream(refPath), path.basename(refPath), { type: mime });
       result = await openai.images.edit({
-        model: 'gpt-image-1',
-        image: fs.createReadStream(refPath),
+        model: 'gpt-image-1.5',
+        image: refFile,
         prompt,
         size: '1024x1024',
+        quality: 'medium',
       });
     } else {
       result = await openai.images.generate({
-        model: 'gpt-image-1',
+        model: 'gpt-image-1.5',
         prompt,
         size: '1024x1024',
+        quality: 'medium',
       });
     }
 
