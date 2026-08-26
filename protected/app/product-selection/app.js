@@ -42,9 +42,10 @@ function suggestedAccessories(device) {
   );
 }
 
-// 從「預計或實際上市日期」這種自由文字欄位裡，盡量抓出一個可用日期
-function extractLaunchDate(text, fallbackYear) {
-  if (!text) return null;
+// 從「預計或實際上市日期」這種自由文字欄位裡，盡量抓出所有可用日期
+// (同一機型常常同時有「發表」跟「上市/開賣」兩個不同日期，要分開明確標示，不能只挑一個)
+function extractDateEvents(text, fallbackYear) {
+  if (!text) return [];
   const candidates = [];
   let working = text;
 
@@ -83,28 +84,56 @@ function extractLaunchDate(text, fallbackYear) {
     candidates.push({ year, month: +bm[1], day: +bm[2], index: idx, end: idx + bm[0].length });
   }
 
-  if (!candidates.length) return null;
+  if (!candidates.length) return [];
 
-  function labelFor(c) {
-    const ctx = text.slice(Math.max(0, c.index - 16), c.index) + text.slice(c.end, c.end + 16);
-    if (/上市|開賣/.test(ctx)) return 'launch';
-    if (/發表|公布|亮相/.test(ctx)) return 'announce';
-    return 'other';
-  }
-
-  candidates.forEach((c) => {
-    c.precision = c.precision || 'day';
-    c.label = labelFor(c);
-  });
+  // 先依照在原文中出現的先後排序，這樣才能限制每個日期只看「自己附近、不越界到隔壁日期」的文字來判斷發表/上市
   candidates.sort((a, b) => a.index - b.index);
 
-  const picked =
-    [...candidates].reverse().find((c) => c.label === 'launch') ||
-    [...candidates].reverse().find((c) => c.label === 'announce') ||
-    candidates[candidates.length - 1];
+  candidates.forEach((c, i) => {
+    c.precision = c.precision || 'day';
+    const prevEnd = i > 0 ? candidates[i - 1].end : 0;
+    const nextStart = i < candidates.length - 1 ? candidates[i + 1].index : text.length;
+    const before = text.slice(Math.max(prevEnd, c.index - 16), c.index);
+    const after = text.slice(c.end, Math.min(nextStart, c.end + 16));
+    const ctx = before + after;
+    if (/上市|開賣|發售/.test(ctx)) c.label = 'launch';
+    else if (/發表|公布|亮相/.test(ctx)) c.label = 'announce';
+    else c.label = 'other';
+  });
 
-  if (picked.month < 1 || picked.month > 12 || picked.day < 1 || picked.day > 31) return null;
-  return picked;
+  // 同年月日+同類型的重複標記去掉重複(例如同一句話裡數字被抓到兩次)
+  const seen = new Set();
+  const events = [];
+  for (const c of candidates) {
+    if (c.month < 1 || c.month > 12 || c.day < 1 || c.day > 31) continue;
+    const key = `${c.year}-${c.month}-${c.day}-${c.label}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    events.push(c);
+  }
+
+  events.sort((a, b) => a.year - b.year || a.month - b.month || a.day - b.day);
+  return events;
+}
+
+function dateEventLabelText(label) {
+  return label === 'launch' ? '上市' : label === 'announce' ? '發表' : '預估';
+}
+
+function dateEventIcon(label) {
+  return label === 'launch' ? '🚀' : label === 'announce' ? '📣' : '📅';
+}
+
+function formatDateSummary(d) {
+  const discoveredYear = parseInt((d['發現日期'] || '').slice(0, 4), 10) || calendarMonth.getFullYear();
+  const events = extractDateEvents(d['預計或實際上市日期'], discoveredYear);
+  if (!events.length) return '';
+  return events
+    .map((e) => {
+      const dateStr = e.precision === 'month' ? `${e.year}/${e.month}月` : `${e.year}/${e.month}/${e.day}`;
+      return `${dateEventIcon(e.label)}${dateEventLabelText(e.label)} ${dateStr}`;
+    })
+    .join('　');
 }
 
 const gridEl = document.getElementById('grid');
@@ -198,10 +227,12 @@ function renderCalendar() {
   const dateMap = {};
   allDevices.forEach((d) => {
     const discoveredYear = parseInt((d['發現日期'] || '').slice(0, 4), 10) || year;
-    const info = extractLaunchDate(d['預計或實際上市日期'], discoveredYear);
-    if (!info || info.year !== year || info.month !== month + 1) return;
-    if (!dateMap[info.day]) dateMap[info.day] = [];
-    dateMap[info.day].push({ device: d, precision: info.precision, label: info.label });
+    const events = extractDateEvents(d['預計或實際上市日期'], discoveredYear);
+    events.forEach((info) => {
+      if (info.year !== year || info.month !== month + 1) return;
+      if (!dateMap[info.day]) dateMap[info.day] = [];
+      dateMap[info.day].push({ device: d, precision: info.precision, label: info.label });
+    });
   });
 
   const firstWeekday = new Date(year, month, 1).getDay();
@@ -214,13 +245,12 @@ function renderCalendar() {
   for (let day = 1; day <= daysInMonth; day++) {
     const items = dateMap[day] || [];
     const shown = items.slice(0, 3);
-    const icon = (label) => (label === 'launch' ? '🚀' : label === 'announce' ? '📣' : '📅');
     const eventsHtml = shown
       .map(
         (it) =>
-          `<div class="cal-event ${it.precision === 'month' ? 'approx' : ''}" data-id="${it.device.id}" title="${escapeAttr(
-            it.device['型號']
-          )}">${icon(it.label)} ${escapeHtml(it.device['型號'] || '')}</div>`
+          `<div class="cal-event cal-event-${it.label} ${it.precision === 'month' ? 'approx' : ''}" data-id="${it.device.id}" title="${escapeAttr(
+            dateEventLabelText(it.label) + '：' + it.device['型號']
+          )}">${dateEventIcon(it.label)} ${dateEventLabelText(it.label)}｜${escapeHtml(it.device['型號'] || '')}</div>`
       )
       .join('');
     const moreHtml = items.length > 3 ? `<div class="cal-more">+${items.length - 3} 個</div>` : '';
@@ -337,6 +367,14 @@ function render() {
         saveSelection(d.id, checkbox.checked, note.value, d.accessories);
       });
     });
+
+    const trendsInput = card.querySelector('.trends-keyword-input');
+    const trendsResult = card.querySelector('.trends-result');
+    const trendsBtn = card.querySelector('.trends-search-btn');
+    trendsBtn.addEventListener('click', () => runTrendsQuery(trendsInput.value.trim(), trendsResult));
+    trendsInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runTrendsQuery(trendsInput.value.trim(), trendsResult);
+    });
   });
 }
 
@@ -359,9 +397,13 @@ function renderCard(d) {
         <span class="badge badge-type">${escapeHtml(d['類型'] || '')}</span>
         <span class="badge ${statusClass}">${escapeHtml(d['狀態'] || '')}</span>
       </div>
-      <div class="card-date">
-        發現日期：${escapeHtml(d['發現日期'] || '-')} ｜ 上市：${escapeHtml(d['預計或實際上市日期'] || '-')}
-      </div>
+      <div class="card-date">發現日期：${escapeHtml(d['發現日期'] || '-')}</div>
+      ${
+        formatDateSummary(d)
+          ? `<div class="card-date-parsed">${formatDateSummary(d)}</div>`
+          : ''
+      }
+      <div class="card-date-raw" title="原始資料文字">原始：${escapeHtml(d['預計或實際上市日期'] || '-')}</div>
       <div class="card-highlight">${escapeHtml(d['話題重點'] || '')}</div>
       ${linkHtml}
       <div class="card-footer">
@@ -371,6 +413,7 @@ function renderCard(d) {
         </label>
         <textarea class="card-note" placeholder="選品備註（例如：先做手機殼+保護貼）">${escapeHtml(d.note || '')}</textarea>
         ${renderAccessorySection(d)}
+        ${renderTrendsSection(d)}
       </div>
     </div>
   `;
@@ -393,6 +436,99 @@ function renderAccessorySection(d) {
     <div class="accessory-label">配件建議（★ 為話題重點文字判讀建議，點選即可加入/移除）</div>
     <div class="accessory-chips">${chips}</div>
   </div>`;
+}
+
+function defaultTrendsKeyword(d) {
+  const acc = suggestedAccessories(d)[0] || accessoryCatalogFor(d)[0] || '';
+  const primaryModel = (d['型號'] || '').split('/')[0].trim();
+  return `${primaryModel} ${acc}`.trim();
+}
+
+function renderTrendsSection(d) {
+  const defaultKeyword = defaultTrendsKeyword(d);
+  return `<div class="trends-section">
+    <div class="accessory-label">🔍 Google Trends / 蝦皮關鍵字建議</div>
+    <div class="trends-query-row">
+      <input type="text" class="trends-keyword-input" value="${escapeAttr(defaultKeyword)}" placeholder="輸入要查詢的關鍵字" />
+      <button type="button" class="btn-secondary trends-search-btn">查詢</button>
+    </div>
+    <div class="trends-result"></div>
+  </div>`;
+}
+
+function renderTrendsResult(data) {
+  let html = '';
+
+  if (data.googleTrends) {
+    const gt = data.googleTrends;
+    const max = Math.max(...gt.points.map((p) => p.value), 1);
+    const bars = gt.points
+      .map(
+        (p) =>
+          `<div class="trend-bar" style="height:${Math.max(4, Math.round((p.value / max) * 32))}px" title="${escapeAttr(
+            p.date + ' = ' + p.value
+          )}"></div>`
+      )
+      .join('');
+    const verdictClass =
+      gt.verdict === '上升' ? 'up' : gt.verdict === '下滑' ? 'down' : gt.verdict === '資料不足' ? 'na' : 'flat';
+    const relatedHtml = gt.related.length
+      ? `<div class="trend-chips">${gt.related
+          .map(
+            (r) =>
+              `<span class="trend-chip" data-keyword="${escapeAttr(r.query)}">${escapeHtml(r.query)}（${r.value}）</span>`
+          )
+          .join('')}</div>`
+      : '';
+    html += `<div class="trend-block">
+      <div class="trend-block-title">Google Trends(近14天，台灣)　<span class="trend-verdict ${verdictClass}">${gt.verdict}</span>　目前 ${gt.latest}/100</div>
+      <div class="trend-sparkline">${bars}</div>
+      ${relatedHtml}
+    </div>`;
+  } else if (data.googleTrendsError) {
+    html += `<div class="trend-block-error">Google Trends 查詢失敗：${escapeHtml(data.googleTrendsError)}</div>`;
+  }
+
+  if (data.shopeeSuggestions && data.shopeeSuggestions.length) {
+    html += `<div class="trend-block">
+      <div class="trend-block-title">蝦皮搜尋關鍵字建議</div>
+      <div class="trend-chips">${data.shopeeSuggestions
+        .map((k) => `<span class="trend-chip" data-keyword="${escapeAttr(k)}">${escapeHtml(k)}</span>`)
+        .join('')}</div>
+    </div>`;
+  } else if (data.shopeeError) {
+    html += `<div class="trend-block-error">蝦皮關鍵字建議查詢失敗：${escapeHtml(data.shopeeError)}</div>`;
+  }
+
+  if (data.cached) {
+    html += `<div class="trend-cached-note">快取資料，查詢時間 ${new Date(data.fetchedAt).toLocaleString('zh-TW')}（6小時內同關鍵字不重查）</div>`;
+  }
+
+  return html || '<div class="trends-error">查無資料</div>';
+}
+
+async function runTrendsQuery(keyword, resultEl) {
+  if (!keyword) return;
+  resultEl.innerHTML = '<div class="trends-loading">查詢中…（Google Trends + 蝦皮建議，可能需要幾秒）</div>';
+  try {
+    const res = await fetch(`/app/api/product-selection/trends?keyword=${encodeURIComponent(keyword)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      resultEl.innerHTML = `<div class="trends-error">查詢失敗：${escapeHtml(data.error || '未知錯誤')}</div>`;
+      return;
+    }
+    resultEl.innerHTML = renderTrendsResult(data);
+    resultEl.querySelectorAll('.trend-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const section = resultEl.closest('.trends-section');
+        const input = section.querySelector('.trends-keyword-input');
+        input.value = chip.dataset.keyword;
+        runTrendsQuery(chip.dataset.keyword, resultEl);
+      });
+    });
+  } catch (e) {
+    resultEl.innerHTML = `<div class="trends-error">查詢失敗：${escapeHtml(e.message)}</div>`;
+  }
 }
 
 async function saveSelection(id, picked, note, accessories) {

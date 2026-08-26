@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 生圖風格庫</title>
+<link rel="stylesheet" href="/app/shared.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="title-row">
+      <h1>AI 生圖風格庫</h1>
+      <div class="header-actions">
+        <span id="currentUser" class="current-user"></span>
+        <a href="/app/" class="btn-secondary link-btn">← 回主選單</a>
+        <a href="/app/account.html" class="btn-secondary link-btn">帳號設定</a>
+        <button id="logoutBtn" class="btn-secondary">登出</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <section class="panel">
+      <h2>風格庫</h2>
+      <p class="panel-desc">把過去在 ChatGPT 生成過、效果好的商品圖存進來，之後生成新商品圖時可以選一張當風格參考。</p>
+      <div id="uploadMsg" class="message"></div>
+      <form id="uploadForm" class="upload-form">
+        <input type="file" id="uploadFile" accept="image/png,image/jpeg,image/webp" required />
+        <input type="text" id="uploadCategory" placeholder="類別（例如：手機殼）" list="categoryList" />
+        <datalist id="categoryList">
+          <option value="手機殼"></option>
+          <option value="保護貼"></option>
+          <option value="鏡頭貼"></option>
+          <option value="收納包"></option>
+          <option value="平板保護殼"></option>
+        </datalist>
+        <input type="text" id="uploadNote" placeholder="風格重點（例如：白底木紋、暖光）" />
+        <button type="submit" class="btn-primary">上傳到風格庫</button>
+      </form>
+      <div id="libraryGrid" class="thumb-grid"></div>
+      <div id="libraryEmpty" class="empty-state" hidden>風格庫還是空的，先上傳幾張你喜歡的參考圖吧</div>
+    </section>
+
+    <section class="panel">
+      <h2>生成新商品圖</h2>
+      <div id="generateMsg" class="message"></div>
+      <div class="generate-form">
+        <div class="field">
+          <label for="productName">商品名稱</label>
+          <input type="text" id="productName" placeholder="例如：iPhone 18 Pro 磁吸手機殼" />
+        </div>
+        <div class="field">
+          <label>參考風格（點選風格庫圖片）</label>
+          <div id="selectedRefPreview" class="selected-ref">未選擇（將只依文字描述生成）</div>
+        </div>
+        <div class="field">
+          <label for="extraPrompt">額外描述（選填）</label>
+          <textarea id="extraPrompt" placeholder="例如：淺藍色系、加上鏡頭保護環特寫"></textarea>
+        </div>
+        <button type="button" id="generateBtn" class="btn-primary">🎨 生成商品圖</button>
+      </div>
+      <div id="generateResult" class="generate-result"></div>
+    </section>
+
+    <section class="panel">
+      <h2>生成紀錄</h2>
+      <div id="historyGrid" class="thumb-grid"></div>
+      <div id="historyEmpty" class="empty-state" hidden>還沒有生成紀錄</div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

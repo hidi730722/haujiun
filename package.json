@@ -11,6 +11,9 @@
   "dependencies": {
     "express": "^4.19.2",
     "express-session": "^1.18.0",
-    "nodemailer": "^9.0.5"
+    "google-trends-api": "^4.9.2",
+    "multer": "^2.2.0",
+    "nodemailer": "^9.0.5",
+    "openai": "^7.5.0"
   }
 }

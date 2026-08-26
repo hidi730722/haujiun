@@ -4,6 +4,7 @@ const path = require('path');
 
 const { router: authRouter, requireAuth } = require('./src/auth');
 const productSelectionRouter = require('./src/modules/productSelection');
+const imageStyleRouter = require('./src/modules/imageStyle');
 
 const app = express();
 const PORT = process.env.PORT || 3300;
@@ -26,6 +27,7 @@ app.use('/auth', authRouter);
 
 // 受保護區域：需登入後才能存取的功能模組
 app.use('/app/api/product-selection', requireAuth, productSelectionRouter);
+app.use('/app/api/image-style', requireAuth, imageStyleRouter);
 app.use('/app', requireAuth, express.static(path.join(__dirname, 'protected', 'app')));
 
 app.get('/', (req, res) => {
