@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>註冊 - 網拍經營中心</title>
+<link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+  <div class="auth-card">
+    <h1>建立帳號</h1>
+    <p class="subtitle">使用 Email 註冊新帳號</p>
+    <div id="msg" class="message"></div>
+    <form id="registerForm">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="password">密碼</label>
+        <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label for="confirm">確認密碼</label>
+        <input id="confirm" name="confirm" type="password" required minlength="8" autocomplete="new-password" />
+      </div>
+      <button type="submit" class="btn-primary">註冊</button>
+    </form>
+    <div class="links">
+      <a href="/login.html">已經有帳號？前往登入</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm');
+    const msg = document.getElementById('msg');
+
+    function showError(text) {
+      msg.textContent = text;
+      msg.className = 'message error';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.className = 'message';
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+      if (password !== confirm) {
+        showError('兩次輸入的密碼不一致');
+        return;
+      }
+      const submitBtn = form.querySelector('button');
+      submitBtn.disabled = true;
+      try {
+        const res = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showError(data.error || '註冊失敗');
+          return;
+        }
+        location.href = '/app/';
+      } catch (err) {
+        showError('連線失敗：' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

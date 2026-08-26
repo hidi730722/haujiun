@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>蝦皮3C周邊選品系統</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="title-row">
+      <h1>蝦皮3C周邊選品系統</h1>
+      <div class="header-actions">
+        <span id="currentUser" class="current-user"></span>
+        <button id="refreshBtn" class="btn-primary">🔄 同步最新機型資料</button>
+        <a href="/app/" class="btn-secondary link-btn">← 回主選單</a>
+        <a href="/app/account.html" class="btn-secondary link-btn">帳號設定</a>
+        <button id="logoutBtn" class="btn-secondary">登出</button>
+      </div>
+    </div>
+    <div id="updatedAt" class="updated-at"></div>
+    <div class="controls">
+      <input id="search" type="text" placeholder="搜尋型號 / 品牌 / 話題重點..." />
+      <select id="filterType">
+        <option value="">全部類型</option>
+      </select>
+      <select id="filterStatus">
+        <option value="">全部狀態</option>
+      </select>
+      <label class="checkbox-label">
+        <input type="checkbox" id="onlyPicked" />
+        只看已選品
+      </label>
+    </div>
+    <div id="stats" class="stats"></div>
+  </header>
+
+  <section class="calendar-panel">
+    <div class="calendar-header">
+      <button id="calPrev" class="btn-secondary" type="button">◀</button>
+      <div id="calendarLabel" class="calendar-label"></div>
+      <button id="calNext" class="btn-secondary" type="button">▶</button>
+    </div>
+    <div id="calendarGrid" class="calendar-grid"></div>
+    <div class="calendar-legend">
+      🚀 上市/開賣　📣 發表會　📅 其他/預估　－日期由「預計或實際上市日期」欄位文字自動判讀，月份精度(無明確日期)以當月1日概略標示，僅供參考
+    </div>
+  </section>
+
+  <main id="grid" class="grid"></main>
+  <div id="empty" class="empty-state" hidden>沒有符合條件的機型</div>
+
+  <div id="noteModal" class="modal-overlay" hidden>
+    <div class="modal-box">
+      <div class="modal-title" id="noteModalDate"></div>
+      <ul id="noteList" class="note-list"></ul>
+      <div class="note-add-row">
+        <input id="noteInput" type="text" placeholder="新增備註或行程..." maxlength="200" />
+        <button id="noteAddBtn" class="btn-primary" type="button">新增</button>
+      </div>
+      <button id="noteModalClose" class="btn-secondary" type="button">關閉</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

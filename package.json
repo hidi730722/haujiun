@@ -1,0 +1,16 @@
+{
+  "name": "ecommerce-management-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "網拍經營管理系統 - 統一入口(帳號系統+各功能模組)",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env server.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "create-user": "node --env-file-if-exists=.env scripts/create-user.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "nodemailer": "^9.0.5"
+  }
+}

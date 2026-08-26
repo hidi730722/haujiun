@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>帳號設定 - 網拍經營中心</title>
+<link rel="stylesheet" href="shared.css" />
+<link rel="stylesheet" href="account.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="title-row">
+      <h1>帳號設定</h1>
+      <div class="header-actions">
+        <span id="currentUser" class="current-user"></span>
+        <a href="/app/" class="btn-secondary link-btn">← 回主選單</a>
+        <button id="logoutBtn" class="btn-secondary">登出</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="account-main">
+    <section class="panel">
+      <h2>修改密碼</h2>
+      <div id="pwMsg" class="message"></div>
+      <form id="changePwForm">
+        <div class="field">
+          <label for="currentPassword">目前密碼</label>
+          <input id="currentPassword" type="password" required autocomplete="current-password" />
+        </div>
+        <div class="field">
+          <label for="newPassword">新密碼</label>
+          <input id="newPassword" type="password" required minlength="8" autocomplete="new-password" />
+        </div>
+        <div class="field">
+          <label for="confirmPassword">確認新密碼</label>
+          <input id="confirmPassword" type="password" required minlength="8" autocomplete="new-password" />
+        </div>
+        <button type="submit" class="btn-primary">更新密碼</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>已註冊帳號</h2>
+      <table class="user-table">
+        <thead>
+          <tr><th>Email</th><th>建立時間</th></tr>
+        </thead>
+        <tbody id="userList"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    async function loadUser() {
+      const res = await fetch('/auth/me');
+      const data = await res.json();
+      document.getElementById('currentUser').textContent = data.email || '';
+    }
+
+    async function loadUserList() {
+      const res = await fetch('/auth/users');
+      const data = await res.json();
+      const tbody = document.getElementById('userList');
+      tbody.innerHTML = (data.users || [])
+        .map(
+          (u) =>
+            `<tr><td>${escapeHtml(u.email)}</td><td>${
+              u.createdAt ? new Date(u.createdAt).toLocaleString('zh-TW') : '-'
+            }</td></tr>`
+        )
+        .join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST' });
+      location.href = '/login.html';
+    });
+
+    const pwForm = document.getElementById('changePwForm');
+    const pwMsg = document.getElementById('pwMsg');
+
+    pwForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      pwMsg.className = 'message';
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      if (newPassword !== confirmPassword) {
+        pwMsg.textContent = '兩次輸入的新密碼不一致';
+        pwMsg.className = 'message error';
+        return;
+      }
+      const submitBtn = pwForm.querySelector('button');
+      submitBtn.disabled = true;
+      try {
+        const res = await fetch('/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          pwMsg.textContent = data.error || '更新失敗';
+          pwMsg.className = 'message error';
+          return;
+        }
+        pwMsg.textContent = '密碼已更新';
+        pwMsg.className = 'message success';
+        pwForm.reset();
+      } catch (err) {
+        pwMsg.textContent = '連線失敗：' + err.message;
+        pwMsg.className = 'message error';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    loadUser();
+    loadUserList();
+  </script>
+</body>
+</html>

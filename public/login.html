@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>登入 - 網拍經營中心</title>
+<link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+  <div class="auth-card">
+    <h1>網拍經營中心</h1>
+    <p class="subtitle">請使用你的 Email 登入</p>
+    <div id="msg" class="message"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="password">密碼</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn-primary">登入</button>
+    </form>
+    <div class="links">
+      <a href="/forgot-password.html">忘記密碼？</a>
+    </div>
+    <div class="links">
+      <a href="/register.html">還沒有帳號？註冊一個</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('msg');
+
+    function showError(text) {
+      msg.textContent = text;
+      msg.className = 'message error';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.className = 'message';
+      const submitBtn = form.querySelector('button');
+      submitBtn.disabled = true;
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showError(data.error || '登入失敗');
+          return;
+        }
+        const params = new URLSearchParams(location.search);
+        location.href = params.get('next') || '/app/';
+      } catch (err) {
+        showError('連線失敗：' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
