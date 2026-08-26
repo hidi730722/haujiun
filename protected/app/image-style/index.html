@@ -77,6 +77,56 @@
     </section>
 
     <section class="panel">
+      <h2>店家 LOGO</h2>
+      <p class="panel-desc">圖文行銷卡右下角會固定放這個 LOGO，建議用透明背景 PNG。</p>
+      <div id="logoMsg" class="message"></div>
+      <div class="logo-row">
+        <img id="logoPreview" class="logo-preview" alt="目前的LOGO" hidden />
+        <span id="logoEmptyLabel" class="thumb-note">尚未設定 LOGO</span>
+        <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" />
+        <button type="button" id="logoUploadBtn" class="btn-primary">上傳/更新 LOGO</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>圖文行銷卡生成器</h2>
+      <p class="panel-desc">上傳商品圖 + 填標題與重點，自動排版成蝦皮風格的圖文主圖（大標題＋icon重點＋商品圖＋你的LOGO）。</p>
+      <div id="cardMsg" class="message"></div>
+      <div class="generate-form">
+        <div class="field">
+          <label for="cardProductPhoto">商品圖片</label>
+          <input type="file" id="cardProductPhoto" accept="image/png,image/jpeg,image/webp" />
+        </div>
+        <div class="field">
+          <label for="cardProductName">商品名稱（選填，僅供紀錄用）</label>
+          <input type="text" id="cardProductName" placeholder="例如：Galaxy Z Fold8 透明殼" />
+        </div>
+        <div class="field">
+          <label for="cardTag">角標文字（選填）</label>
+          <input type="text" id="cardTag" placeholder="例如：專為 Samsung Galaxy Z Fold8 設計" />
+        </div>
+        <div class="field">
+          <label for="cardHeadline">大標題</label>
+          <input type="text" id="cardHeadline" placeholder="例如：高透亮" maxlength="12" />
+        </div>
+        <div class="field">
+          <label for="cardSubheadline">副標題（選填）</label>
+          <input type="text" id="cardSubheadline" placeholder="例如：高透硬殼｜清晰展現原機質感" />
+        </div>
+        <div class="field">
+          <label>重點特色（最多4條）</label>
+          <div id="bulletRows" class="bullet-rows"></div>
+        </div>
+        <div class="field">
+          <label for="cardTheme">主題色</label>
+          <select id="cardTheme"></select>
+        </div>
+        <button type="button" id="generateCardBtn" class="btn-primary">🖼️ 生成圖文主圖</button>
+      </div>
+      <div id="generateCardResult" class="generate-result"></div>
+    </section>
+
+    <section class="panel">
       <h2>生成紀錄</h2>
       <div id="historyGrid" class="thumb-grid"></div>
       <div id="historyEmpty" class="empty-state" hidden>還沒有生成紀錄</div>

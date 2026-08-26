@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const multer = require('multer');
 const OpenAI = require('openai');
 const { toFile } = require('openai');
+const sharp = require('sharp');
+const { renderFeatureCard, THEMES, ICON_PATHS } = require('../lib/cardTemplate');
 
 const EXT_MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 
@@ -13,6 +15,7 @@ const LIBRARY_DIR = path.join(MODULE_DATA_DIR, 'library');
 const LIBRARY_INDEX_FILE = path.join(MODULE_DATA_DIR, 'library.json');
 const GENERATED_DIR = path.join(MODULE_DATA_DIR, 'generated');
 const GENERATED_INDEX_FILE = path.join(MODULE_DATA_DIR, 'generated.json');
+const LOGO_FILE = path.join(MODULE_DATA_DIR, 'logo.png');
 
 function ensureDirs() {
   [MODULE_DATA_DIR, LIBRARY_DIR, GENERATED_DIR].forEach((d) => {
@@ -118,6 +121,24 @@ function buildScenePrompt(productName, template, styleNote) {
 }
 
 const router = express.Router();
+
+router.get('/logo', (req, res) => {
+  if (!fs.existsSync(LOGO_FILE)) return res.status(404).end();
+  res.sendFile(LOGO_FILE);
+});
+
+router.post('/logo', uploadMemory.single('logo'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '請上傳 LOGO 圖片(建議透明背景 PNG)' });
+  try {
+    await sharp(req.file.buffer)
+      .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toFile(LOGO_FILE);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'LOGO 處理失敗' });
+  }
+});
 
 router.get('/library', (req, res) => {
   res.json({ items: loadIndex(LIBRARY_INDEX_FILE) });
@@ -303,6 +324,68 @@ router.post('/generate-set', uploadMemory.single('productImage'), async (req, re
 
   saveIndex(GENERATED_INDEX_FILE, genItems);
   res.json({ ok: true, items: saved, errors });
+});
+
+router.get('/card-options', (req, res) => {
+  res.json({
+    themes: Object.keys(THEMES),
+    icons: Object.keys(ICON_PATHS),
+    hasLogo: fs.existsSync(LOGO_FILE),
+  });
+});
+
+router.post('/generate-card', uploadMemory.single('productImage'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: '請上傳商品圖片(jpg/png/webp，10MB以內)' });
+  }
+
+  const headline = (req.body.headline || '').trim();
+  if (!headline) {
+    return res.status(400).json({ error: '請輸入大標題文字' });
+  }
+
+  let bullets = [];
+  try {
+    bullets = JSON.parse(req.body.bulletsJson || '[]');
+  } catch {
+    bullets = [];
+  }
+
+  const theme = req.body.theme || 'purple';
+  const subheadline = req.body.subheadline || '';
+  const tag = req.body.tag || '';
+  const productName = (req.body.productName || '').trim() || '未命名商品';
+
+  try {
+    const logoBuffer = fs.existsSync(LOGO_FILE) ? fs.readFileSync(LOGO_FILE) : null;
+    const pngBuffer = await renderFeatureCard({
+      headline,
+      subheadline,
+      bullets,
+      tag,
+      theme,
+      productImageBuffer: req.file.buffer,
+      logoBuffer,
+    });
+
+    const filename = crypto.randomBytes(8).toString('hex') + '.png';
+    fs.writeFileSync(path.join(GENERATED_DIR, filename), pngBuffer);
+
+    const genItems = loadIndex(GENERATED_INDEX_FILE);
+    const record = {
+      id: crypto.randomBytes(6).toString('hex'),
+      filename,
+      productName,
+      sceneLabel: '圖文行銷卡',
+      createdAt: new Date().toISOString(),
+    };
+    genItems.push(record);
+    saveIndex(GENERATED_INDEX_FILE, genItems);
+
+    res.json({ ok: true, item: record });
+  } catch (e) {
+    res.status(500).json({ error: e.message || '生成失敗' });
+  }
 });
 
 module.exports = router;
