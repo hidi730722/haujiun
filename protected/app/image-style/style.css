@@ -45,24 +45,6 @@
   color: #16a34a;
 }
 
-.upload-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.upload-form input[type="text"] {
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.upload-form input[type="file"] {
-  font-size: 13px;
-}
-
 .thumb-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -74,16 +56,13 @@
   border-radius: 8px;
   overflow: hidden;
   background: var(--bg);
-  cursor: pointer;
+  display: block;
+  text-decoration: none;
   transition: border-color 0.15s ease;
 }
 
 .thumb-card:hover {
   border-color: var(--accent);
-}
-
-.thumb-card.selected {
-  border: 2px solid var(--accent);
 }
 
 .thumb-card img {
@@ -107,24 +86,6 @@
 .thumb-note {
   color: var(--text-muted);
   margin-top: 2px;
-}
-
-.thumb-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 6px 6px;
-}
-
-.thumb-del {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 11px;
-}
-
-.thumb-del:hover {
-  color: #dc2626;
 }
 
 .empty-state {
@@ -161,22 +122,6 @@
 .field textarea {
   min-height: 60px;
   resize: vertical;
-}
-
-.selected-ref {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.selected-ref img {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid var(--border);
 }
 
 .generate-result {
@@ -217,55 +162,4 @@
   font-weight: 600;
   color: var(--text);
   text-align: center;
-}
-
-.logo-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.logo-preview {
-  width: 64px;
-  height: 64px;
-  object-fit: contain;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #fafafa;
-}
-
-.bullet-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.bullet-row {
-  display: flex;
-  gap: 8px;
-}
-
-.bullet-row select {
-  width: 110px;
-  padding: 7px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.bullet-row input {
-  flex: 1;
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-#cardTheme {
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
-  width: 200px;
 }
