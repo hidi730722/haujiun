@@ -125,32 +125,130 @@ function wireGenItem(card) {
   });
 }
 
-async function loadHistory() {
-  const res = await fetch(`${API}/generated`);
+let FOLDERS = [];
+let allHistoryItems = [];
+let activeFolder = 'all';
+
+async function loadFolders() {
+  const res = await fetch(`${API}/folders`);
   const data = await res.json();
+  FOLDERS = data.folders || [];
+  renderFolderTabs();
+}
+
+function renderFolderTabs() {
+  const tabsEl = document.getElementById('folderTabs');
+  const tabs = [{ id: 'all', name: '全部' }, { id: 'unfiled', name: '未分類' }, ...FOLDERS];
+  tabsEl.innerHTML = tabs
+    .map(
+      (f) => `
+      <button type="button" class="folder-tab ${activeFolder === f.id ? 'active' : ''}" data-folder="${f.id}">
+        ${escapeHtml(f.name)}${
+        f.id !== 'all' && f.id !== 'unfiled' ? `<span class="folder-del" data-folder-del="${f.id}">✕</span>` : ''
+      }
+      </button>`
+    )
+    .join('');
+
+  tabsEl.querySelectorAll('.folder-tab').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      if (e.target.closest('.folder-del')) return;
+      activeFolder = btn.dataset.folder;
+      renderFolderTabs();
+      renderHistory();
+    });
+  });
+
+  tabsEl.querySelectorAll('.folder-del').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm('刪除這個資料夾？裡面的圖片會變成未分類，圖片本身不會被刪除。')) return;
+      const folderId = btn.dataset.folderDel;
+      await fetch(`${API}/folders/${folderId}`, { method: 'DELETE' });
+      if (activeFolder === folderId) activeFolder = 'all';
+      await loadFolders();
+      await loadHistory();
+    });
+  });
+}
+
+document.getElementById('addFolderBtn').addEventListener('click', async () => {
+  const input = document.getElementById('newFolderName');
+  const name = input.value.trim();
+  if (!name) return;
+  await fetch(`${API}/folders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  input.value = '';
+  await loadFolders();
+  renderHistory();
+});
+
+function historyCardHtml(item) {
+  const folderOptions =
+    `<option value="">未分類</option>` +
+    FOLDERS.map(
+      (f) => `<option value="${f.id}" ${item.folderId === f.id ? 'selected' : ''}>${escapeHtml(f.name)}</option>`
+    ).join('');
+  return `
+    <div class="thumb-card" data-id="${item.id}">
+      <a href="${API}/generated/${item.id}/file" target="_blank" rel="noopener">
+        <img src="${API}/generated/${item.id}/file" alt="${escapeHtml(item.productName)}" loading="lazy" />
+      </a>
+      <div class="thumb-meta">
+        <div class="thumb-category">${escapeHtml(item.productName)}${
+    item.sceneLabel ? `　${escapeHtml(item.sceneLabel)}` : ''
+  }</div>
+        <div class="thumb-note">${new Date(item.createdAt).toLocaleString('zh-TW')}</div>
+      </div>
+      <div class="thumb-controls">
+        <select class="thumb-folder-select">${folderOptions}</select>
+        <button type="button" class="thumb-del-btn">刪除</button>
+      </div>
+    </div>`;
+}
+
+function wireHistoryCard(card) {
+  const id = card.dataset.id;
+  card.querySelector('.thumb-folder-select').addEventListener('change', async (e) => {
+    await fetch(`${API}/generated/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderId: e.target.value || null }),
+    });
+    await loadHistory();
+  });
+  card.querySelector('.thumb-del-btn').addEventListener('click', async () => {
+    if (!confirm('確定要刪除這張圖片嗎？刪除後無法復原。')) return;
+    await fetch(`${API}/generated/${id}`, { method: 'DELETE' });
+    await loadHistory();
+  });
+}
+
+function renderHistory() {
   const grid = document.getElementById('historyGrid');
   const empty = document.getElementById('historyEmpty');
-  const items = data.items || [];
+  let items = allHistoryItems;
+  if (activeFolder === 'unfiled') items = items.filter((i) => !i.folderId);
+  else if (activeFolder !== 'all') items = items.filter((i) => i.folderId === activeFolder);
+
   if (!items.length) {
     grid.innerHTML = '';
     empty.hidden = false;
     return;
   }
   empty.hidden = true;
-  grid.innerHTML = items
-    .map(
-      (item) => `
-      <a class="thumb-card" href="${API}/generated/${item.id}/file" target="_blank" rel="noopener">
-        <img src="${API}/generated/${item.id}/file" alt="${escapeHtml(item.productName)}" loading="lazy" />
-        <div class="thumb-meta">
-          <div class="thumb-category">${escapeHtml(item.productName)}${
-        item.sceneLabel ? `　${escapeHtml(item.sceneLabel)}` : ''
-      }</div>
-          <div class="thumb-note">${new Date(item.createdAt).toLocaleString('zh-TW')}</div>
-        </div>
-      </a>`
-    )
-    .join('');
+  grid.innerHTML = items.map(historyCardHtml).join('');
+  grid.querySelectorAll('.thumb-card').forEach(wireHistoryCard);
+}
+
+async function loadHistory() {
+  const res = await fetch(`${API}/generated`);
+  const data = await res.json();
+  allHistoryItems = data.items || [];
+  renderHistory();
 }
 
 document.getElementById('generateSetBtn').addEventListener('click', async () => {
@@ -203,5 +301,8 @@ document.getElementById('generateSetBtn').addEventListener('click', async () => 
 });
 
 loadUser();
-loadHistory();
 loadTextOptions();
+(async () => {
+  await loadFolders();
+  await loadHistory();
+})();

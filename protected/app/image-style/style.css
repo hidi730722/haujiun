@@ -56,13 +56,16 @@
   border-radius: 8px;
   overflow: hidden;
   background: var(--bg);
-  display: block;
-  text-decoration: none;
   transition: border-color 0.15s ease;
 }
 
 .thumb-card:hover {
   border-color: var(--accent);
+}
+
+.thumb-card a {
+  display: block;
+  text-decoration: none;
 }
 
 .thumb-card img {
@@ -81,6 +84,91 @@
 .thumb-category {
   font-weight: 700;
   color: var(--text);
+}
+
+.thumb-controls {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px 8px;
+}
+
+.thumb-folder-select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.thumb-del-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.thumb-del-btn:hover {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.folder-bar {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.folder-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.folder-tab {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.folder-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.folder-del {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.folder-del:hover {
+  opacity: 1;
+}
+
+.folder-add-row {
+  display: flex;
+  gap: 6px;
+}
+
+.folder-add-row input {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  width: 180px;
 }
 
 .thumb-note {

@@ -10,6 +10,7 @@ const { applyTextOverlay, FONT_MAP, POSITIONS } = require('../lib/textOverlay');
 const MODULE_DATA_DIR = path.join(__dirname, '..', '..', 'data', 'image-style');
 const GENERATED_DIR = path.join(MODULE_DATA_DIR, 'generated');
 const GENERATED_INDEX_FILE = path.join(MODULE_DATA_DIR, 'generated.json');
+const FOLDERS_FILE = path.join(MODULE_DATA_DIR, 'folders.json');
 
 function ensureDirs() {
   [MODULE_DATA_DIR, GENERATED_DIR].forEach((d) => {
@@ -127,6 +128,61 @@ router.get('/generated/:id/file', (req, res) => {
   const item = items.find((i) => i.id === req.params.id);
   if (!item) return res.status(404).end();
   res.sendFile(path.join(GENERATED_DIR, item.filename));
+});
+
+router.delete('/generated/:id', (req, res) => {
+  const items = loadIndex(GENERATED_INDEX_FILE);
+  const item = items.find((i) => i.id === req.params.id);
+  if (item) {
+    const filePath = path.join(GENERATED_DIR, item.filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
+  saveIndex(
+    GENERATED_INDEX_FILE,
+    items.filter((i) => i.id !== req.params.id)
+  );
+  res.json({ ok: true });
+});
+
+router.patch('/generated/:id', (req, res) => {
+  const items = loadIndex(GENERATED_INDEX_FILE);
+  const item = items.find((i) => i.id === req.params.id);
+  if (!item) return res.status(404).json({ error: '找不到這張圖片' });
+  if ('folderId' in (req.body || {})) {
+    item.folderId = req.body.folderId || null;
+  }
+  saveIndex(GENERATED_INDEX_FILE, items);
+  res.json({ ok: true, item });
+});
+
+router.get('/folders', (req, res) => {
+  res.json({ folders: loadIndex(FOLDERS_FILE) });
+});
+
+router.post('/folders', (req, res) => {
+  const name = (req.body?.name || '').trim();
+  if (!name) return res.status(400).json({ error: '請輸入資料夾名稱' });
+  const folders = loadIndex(FOLDERS_FILE);
+  const folder = { id: crypto.randomBytes(6).toString('hex'), name, createdAt: new Date().toISOString() };
+  folders.push(folder);
+  saveIndex(FOLDERS_FILE, folders);
+  res.json({ ok: true, folder });
+});
+
+router.delete('/folders/:id', (req, res) => {
+  const folders = loadIndex(FOLDERS_FILE).filter((f) => f.id !== req.params.id);
+  saveIndex(FOLDERS_FILE, folders);
+  // 資料夾刪除時，裡面的圖片改回「未分類」，圖片本身不會被刪除
+  const items = loadIndex(GENERATED_INDEX_FILE);
+  let changed = false;
+  items.forEach((i) => {
+    if (i.folderId === req.params.id) {
+      i.folderId = null;
+      changed = true;
+    }
+  });
+  if (changed) saveIndex(GENERATED_INDEX_FILE, items);
+  res.json({ ok: true });
 });
 
 router.post('/generate-set', uploadMemory.single('productImage'), async (req, res) => {
