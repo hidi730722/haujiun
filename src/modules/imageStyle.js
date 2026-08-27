@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const OpenAI = require('openai');
 const { toFile } = require('openai');
+const { applyTextOverlay, FONT_MAP, POSITIONS } = require('../lib/textOverlay');
 
 const MODULE_DATA_DIR = path.join(__dirname, '..', '..', 'data', 'image-style');
 const GENERATED_DIR = path.join(MODULE_DATA_DIR, 'generated');
@@ -197,6 +198,49 @@ router.post('/generate-set', uploadMemory.single('productImage'), async (req, re
 
   saveIndex(GENERATED_INDEX_FILE, genItems);
   res.json({ ok: true, items: saved, errors });
+});
+
+router.get('/text-options', (req, res) => {
+  res.json({
+    fonts: Object.entries(FONT_MAP).map(([value, f]) => ({ value, label: f.label })),
+    positions: POSITIONS,
+  });
+});
+
+router.post('/add-text', async (req, res) => {
+  const { imageId, text, font, color, size, position } = req.body || {};
+  if (!imageId) return res.status(400).json({ error: '缺少圖片ID' });
+  if (!text || !text.trim()) return res.status(400).json({ error: '請輸入文字內容' });
+
+  const items = loadIndex(GENERATED_INDEX_FILE);
+  const item = items.find((i) => i.id === imageId);
+  if (!item) return res.status(404).json({ error: '找不到這張圖片' });
+
+  try {
+    const srcBuffer = fs.readFileSync(path.join(GENERATED_DIR, item.filename));
+    const pngBuffer = await applyTextOverlay(srcBuffer, {
+      text: text.trim(),
+      font,
+      color,
+      size,
+      position,
+    });
+    const filename = crypto.randomBytes(8).toString('hex') + '.png';
+    fs.writeFileSync(path.join(GENERATED_DIR, filename), pngBuffer);
+
+    const record = {
+      id: crypto.randomBytes(6).toString('hex'),
+      filename,
+      productName: item.productName,
+      sceneLabel: `${item.sceneLabel || ''}＋文字`.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    items.push(record);
+    saveIndex(GENERATED_INDEX_FILE, items);
+    res.json({ ok: true, item: record });
+  } catch (e) {
+    res.status(500).json({ error: e.message || '加字失敗' });
+  }
 });
 
 module.exports = router;
