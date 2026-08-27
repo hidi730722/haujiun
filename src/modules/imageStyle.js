@@ -87,6 +87,12 @@ function buildScenePrompt(productName, template, styleNote) {
   return p;
 }
 
+// 實測過：AI生圖畫短的中文大標題(4字左右)清楚可讀，但字數一多或字體變小就會出現亂碼假字，
+// 所以只在「主圖」這張疊加大標題，其餘照片不加文字，避免不可靠的小字說明
+function headlineInstruction(headline) {
+  return `在畫面左上角，用清晰工整、加粗的中文大字寫上「${headline}」作為標題文字，只能寫這幾個字、不要加其他文字或說明句子，文字顏色依背景明暗自動選擇對比色以確保清楚易讀，字體大小約占畫面寬度三分之一。`;
+}
+
 const ENRICH_SYSTEM_PROMPT =
   '你是專業商品攝影指導，負責把簡短的生圖需求擴寫成詳細、生動、具體的英文攝影描述，供AI生圖模型使用。要包含：燈光設定、構圖角度、背景材質與氛圍、鏡頭感(景深/焦段)、色調。絕對不要更改商品本身外觀、顏色、比例。只輸出擴寫後的描述本身，不要其他說明文字。';
 
@@ -135,6 +141,7 @@ router.post('/generate-set', uploadMemory.single('productImage'), async (req, re
 
   const productName = (req.body.productName || '').trim();
   const styleNote = req.body.styleNote || '';
+  const headline = (req.body.headline || '').trim().slice(0, 8);
   let count = parseInt(req.body.count, 10);
   if (!Number.isFinite(count)) count = 4;
   count = Math.min(SCENE_TEMPLATES.length, Math.max(2, count));
@@ -142,12 +149,16 @@ router.post('/generate-set', uploadMemory.single('productImage'), async (req, re
   const templates = SCENE_TEMPLATES.slice(0, count);
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const jobs = templates.map(async (tmpl) => {
+  const jobs = templates.map(async (tmpl, i) => {
     const refFile = await toFile(req.file.buffer, req.file.originalname || 'product.png', {
       type: req.file.mimetype,
     });
     const basePrompt = buildScenePrompt(productName, tmpl, styleNote);
-    const prompt = await enrichPrompt(openai, basePrompt);
+    let prompt = await enrichPrompt(openai, basePrompt);
+    // 只在第一張(主圖)疊加大標題文字，其餘照片維持純照片，避免AI生圖畫小字說明時容易出現亂碼
+    if (i === 0 && headline) {
+      prompt += ' ' + headlineInstruction(headline);
+    }
     const result = await openai.images.edit({
       model: 'gpt-image-1.5',
       image: refFile,

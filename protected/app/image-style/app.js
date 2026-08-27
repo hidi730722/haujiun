@@ -60,6 +60,7 @@ document.getElementById('generateSetBtn').addEventListener('click', async () => 
   formData.append('productName', document.getElementById('productName2').value.trim());
   formData.append('count', count);
   formData.append('styleNote', document.getElementById('styleNote2').value.trim());
+  formData.append('headline', document.getElementById('headline2').value.trim());
 
   msg.className = 'message';
   resultEl.innerHTML = `<div class="generate-loading">生成中…（共 ${count} 張，可能需要 30-90 秒，請耐心等候）</div>`;
