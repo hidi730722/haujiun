@@ -124,6 +124,24 @@
   resize: vertical;
 }
 
+.chat-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px !important;
+  padding: 12px 14px !important;
+  line-height: 1.6;
+}
+
+.chat-box:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--card-bg);
+}
+
+.chat-box::placeholder {
+  color: var(--text-muted);
+}
+
 .generate-result {
   display: flex;
   flex-wrap: wrap;
