@@ -120,6 +120,28 @@ function buildScenePrompt(productName, template, styleNote) {
   return p;
 }
 
+const ENRICH_SYSTEM_PROMPT =
+  '你是專業商品攝影指導，負責把簡短的生圖需求擴寫成詳細、生動、具體的英文攝影描述，供AI生圖模型使用。要包含：燈光設定、構圖角度、背景材質與氛圍、鏡頭感(景深/焦段)、色調。絕對不要更改商品本身外觀、顏色、比例。只輸出擴寫後的描述本身，不要其他說明文字。';
+
+// 用便宜的文字模型把固定模板擴寫成更生動具體的描述(比照ChatGPT聊天生圖時內部會做的prompt擴寫)，
+// 讓結果更接近使用者在ChatGPT網頁手動生成的品質。擴寫失敗就直接用原本的prompt，不影響主流程。
+async function enrichPrompt(openai, basePrompt) {
+  try {
+    const r = await openai.chat.completions.create({
+      model: 'gpt-4.1-mini',
+      messages: [
+        { role: 'system', content: ENRICH_SYSTEM_PROMPT },
+        { role: 'user', content: basePrompt },
+      ],
+      max_completion_tokens: 400,
+    });
+    const text = r.choices?.[0]?.message?.content?.trim();
+    return text || basePrompt;
+  } catch {
+    return basePrompt;
+  }
+}
+
 const router = express.Router();
 
 router.get('/logo', (req, res) => {
@@ -285,7 +307,8 @@ router.post('/generate-set', uploadMemory.single('productImage'), async (req, re
     const refFile = await toFile(req.file.buffer, req.file.originalname || 'product.png', {
       type: req.file.mimetype,
     });
-    const prompt = buildScenePrompt(productName, tmpl, styleNote);
+    const basePrompt = buildScenePrompt(productName, tmpl, styleNote);
+    const prompt = await enrichPrompt(openai, basePrompt);
     const result = await openai.images.edit({
       model: 'gpt-image-1.5',
       image: refFile,
