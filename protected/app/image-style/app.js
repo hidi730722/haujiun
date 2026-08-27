@@ -186,6 +186,8 @@ document.getElementById('addFolderBtn').addEventListener('click', async () => {
   renderHistory();
 });
 
+let selectedIds = new Set();
+
 function historyCardHtml(item) {
   const folderOptions =
     `<option value="">未分類</option>` +
@@ -194,9 +196,12 @@ function historyCardHtml(item) {
     ).join('');
   return `
     <div class="thumb-card" data-id="${item.id}">
-      <a href="${API}/generated/${item.id}/file" target="_blank" rel="noopener">
-        <img src="${API}/generated/${item.id}/file" alt="${escapeHtml(item.productName)}" loading="lazy" />
-      </a>
+      <div class="thumb-image-wrap">
+        <input type="checkbox" class="thumb-select" ${selectedIds.has(item.id) ? 'checked' : ''} />
+        <a href="${API}/generated/${item.id}/file" target="_blank" rel="noopener">
+          <img src="${API}/generated/${item.id}/file" alt="${escapeHtml(item.productName)}" loading="lazy" />
+        </a>
+      </div>
       <div class="thumb-meta">
         <div class="thumb-category">${escapeHtml(item.productName)}${
     item.sceneLabel ? `　${escapeHtml(item.sceneLabel)}` : ''
@@ -208,6 +213,12 @@ function historyCardHtml(item) {
         <button type="button" class="thumb-del-btn">刪除</button>
       </div>
     </div>`;
+}
+
+function updateBulkBar() {
+  const count = selectedIds.size;
+  document.getElementById('bulkCount').textContent = `已選取 ${count} 張`;
+  document.getElementById('bulkDeleteBtn').disabled = count === 0;
 }
 
 function wireHistoryCard(card) {
@@ -223,9 +234,35 @@ function wireHistoryCard(card) {
   card.querySelector('.thumb-del-btn').addEventListener('click', async () => {
     if (!confirm('確定要刪除這張圖片嗎？刪除後無法復原。')) return;
     await fetch(`${API}/generated/${id}`, { method: 'DELETE' });
+    selectedIds.delete(id);
     await loadHistory();
   });
+  card.querySelector('.thumb-select').addEventListener('change', (e) => {
+    if (e.target.checked) selectedIds.add(id);
+    else selectedIds.delete(id);
+    updateBulkBar();
+  });
 }
+
+document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+  document.querySelectorAll('#historyGrid .thumb-select').forEach((cb) => {
+    cb.checked = e.target.checked;
+    const id = cb.closest('.thumb-card').dataset.id;
+    if (e.target.checked) selectedIds.add(id);
+    else selectedIds.delete(id);
+  });
+  updateBulkBar();
+});
+
+document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
+  const count = selectedIds.size;
+  if (!count) return;
+  if (!confirm(`確定要刪除已選取的 ${count} 張圖片嗎？刪除後無法復原。`)) return;
+  const ids = Array.from(selectedIds);
+  await Promise.all(ids.map((id) => fetch(`${API}/generated/${id}`, { method: 'DELETE' })));
+  selectedIds.clear();
+  await loadHistory();
+});
 
 function renderHistory() {
   const grid = document.getElementById('historyGrid');
@@ -234,19 +271,27 @@ function renderHistory() {
   if (activeFolder === 'unfiled') items = items.filter((i) => !i.folderId);
   else if (activeFolder !== 'all') items = items.filter((i) => i.folderId === activeFolder);
 
+  document.getElementById('selectAllCheckbox').checked = false;
+
   if (!items.length) {
     grid.innerHTML = '';
     empty.hidden = false;
+    updateBulkBar();
     return;
   }
   empty.hidden = true;
   grid.innerHTML = items.map(historyCardHtml).join('');
   grid.querySelectorAll('.thumb-card').forEach(wireHistoryCard);
+  updateBulkBar();
 }
 
 async function loadHistory() {
   const res = await fetch(`${API}/generated`);
   const data = await res.json();
+  const validIds = new Set(data.items.map((i) => i.id));
+  selectedIds.forEach((id) => {
+    if (!validIds.has(id)) selectedIds.delete(id);
+  });
   allHistoryItems = data.items || [];
   renderHistory();
 }

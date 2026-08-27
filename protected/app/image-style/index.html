@@ -73,6 +73,14 @@
           <button type="button" id="addFolderBtn" class="btn-secondary">＋新增資料夾</button>
         </div>
       </div>
+      <div class="bulk-bar">
+        <label class="bulk-select-all">
+          <input type="checkbox" id="selectAllCheckbox" />
+          全選目前顯示
+        </label>
+        <span id="bulkCount" class="bulk-count">已選取 0 張</span>
+        <button type="button" id="bulkDeleteBtn" class="btn-secondary bulk-delete-btn" disabled>刪除已選取</button>
+      </div>
       <div id="historyGrid" class="thumb-grid"></div>
       <div id="historyEmpty" class="empty-state" hidden>還沒有生成紀錄</div>
     </section>
